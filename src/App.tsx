@@ -127,6 +127,15 @@ export default function App() {
   const [saveMsg,      setSaveMsg]      = useState("");
   const [selected,     setSelected]     = useState<HistoryEntry | null>(null);
 
+  const reset = () => {
+    setCandidate("");
+    setDescription("");
+    setAssessment(null);
+    setError("");
+    setSaveMsg("");
+    setSelected(null);
+  };
+
   const consult = async () => {
     if (!candidate.trim()) return;
     setConsulting(true);
@@ -403,6 +412,18 @@ export default function App() {
                 </div>
               );
             })()}
+
+            <button
+              onClick={reset}
+              style={{
+                marginTop: "1.25rem", background: "transparent",
+                border: `1px solid ${C.border}`, color: C.muted,
+                fontFamily: sans, fontSize: "0.75rem", letterSpacing: "0.08em",
+                padding: "0.5rem 1.25rem", cursor: "pointer", borderRadius: "1px",
+              }}
+            >
+              ← New candidate
+            </button>
           </div>
         )}
       </div>
