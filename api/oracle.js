@@ -49,7 +49,7 @@ Icosahedron (20 faces) — code I — CIVILISATIONAL
 
 GEOCODE SYSTEM:
 Format: [SchoolCode][SolidCode]-R[SlotNumber]
-Examples: PT-R1 (Purple Tetrahedron, Room 1), RH-R4 (Red Hexahedron, Room 4), BD-R7 (Blue Dodecahedron, Room 7)
+Examples: PT-R1 (Purple Tetrahedron Room 1), PH-R1 (Purple Hexahedron Room 1), RH-R4 (Red Hexahedron Room 4)
 Slot numbers run from 1 to the number of faces on that Solid (4, 6, 8, 12, or 20).
 
 WHAT A CAPACITY IS:
@@ -57,49 +57,65 @@ A Capacity is a learnable, practicable human capability at the right level of ab
 - NOT too broad: "Philosophy" or "Science" are Schools, not Capacities
 - NOT too narrow: "Plato's cave as used in Book VII" is sub-room material, not a Capacity
 - RIGHT LEVEL: something a person can deliberately practice, develop, and demonstrate
-- It must be nameable as a skill or faculty: e.g. "0th Principle Thinking", "Active Recall", "Systems Mapping", "Embodied Attention"
+- It must be nameable as a skill or faculty: e.g. "0th Principle Thinking", "Active Recall", "Systems Mapping"
 
 ═══════════════════════════════════════════════
 THE PSYCHO-IMMUNITY FILTER — FIVE TESTS
 ═══════════════════════════════════════════════
 
-The PIF assesses candidates in the context of the health of the WHOLE SYSTEM, not in isolation. A good idea that weakens the system should be rejected. A strange idea that genuinely strengthens the system should be accepted.
-
-The system can err in both directions:
-- False rejection (allergy): dismissing something beneficial because it seems unfamiliar
-- False acceptance (infection): incorporating something that harms systemic coherence
-- Autoimmune: incorporating fragments that cause the system to work against itself
+The PIF assesses candidates in the context of the health of the WHOLE SYSTEM, not in isolation.
 
 TEST 1 — GRANULARITY
 Is this candidate at the right level of abstraction for a single Capacity?
 Verdicts: PASS | TOO_BROAD | TOO_NARROW
 
 TEST 2 — NOVELTY
-Does this genuinely add something the system lacks, or is it a restatement of something already implicit or explicit within the BedePlex?
+Does this genuinely add something the system lacks?
 Verdicts: NOVEL | DUPLICATE | VARIANT
 
 TEST 3 — COHERENCE
-Does this candidate cohere with the BedePlex's values, spirit, and architecture? Does it serve at least one BedePlex use case? Does it conflict with the system's core purpose?
+Does this candidate cohere with the BedePlex's values, spirit, and architecture?
 Verdicts: COHERENT | CONTRADICTORY | MISALIGNED
 
 TEST 4 — SYSTEMIC BENEFIT
-Does incorporating this genuinely strengthen the whole system? Does it fill a real gap? Does it create imbalance (overweighting one School, one Solid, one scale level)?
+Does incorporating this genuinely strengthen the whole system?
 Verdicts: STRENGTHENS | NEUTRAL | WEAKENS
 
 TEST 5 — PLACEMENT (only if tests 1-4 pass)
-At what scale must a practitioner operate to develop this capacity? That determines the Solid.
-Which School owns this capacity most naturally? That determines the School.
-Which slot within that School+Solid? Assign the next available slot, or slot 1 if unknown.
-Produce the geocode.
+Determine School, Solid (scale axis), and slot. Produce the geocode.
 
-RECURSIVE REACH:
-After placement, note whether this capacity, once developed, may require revisiting any inner-ring capacity in a new light. This is the spiral dynamic — outer-ring knowledge can reveal gaps at the centre.
+═══════════════════════════════════════════════
+EXTENDED ANALYSIS — ALWAYS INCLUDE
+═══════════════════════════════════════════════
+
+After determining the primary placement, produce three further analyses:
+
+ALTERNATIVE PLACEMENTS (1-2 alternatives):
+Consider where else this concept could legitimately sit. For each alternative:
+- Give the geocode and School/Solid
+- Explain what is STRONG about this alternative placement (why it has genuine merit)
+- Explain what is WEAK about it (why the primary placement is better)
+Be honest — some concepts sit naturally in multiple places. The alternative should be genuinely plausible, not a straw man.
+
+SLOT CANDIDATES (the primary slot seen from the outside):
+Given the proposed geocode (e.g. PH-R1), what OTHER concept names from your knowledge of philosophy, cognitive science, education, and human development would also be strong candidates for exactly this slot? Suggest 3-5 specific named concepts or practices that would compete well for this position. These are not placed — they are candidates the human might want to consider as alternatives to the submitted concept for this slot.
+
+ADJACENT SPACES (the neighbourhood):
+Reason thematically — not by mechanical slot number — about what would naturally inhabit the three adjacent positions. Do not apply the same slot number across Solids; choose based on conceptual fit.
+
+1. The INNER neighbour — one Solid inward (smaller scale). What foundational, more personal capacity would logically underpin or precede the primary placement? The inner Solid has fewer rooms, so choose whichever of its slots is most thematically related — not necessarily the same number. Give the geocode you would suggest for this concept.
+
+2. The OUTER neighbour — one Solid outward (larger scale). What extension of this capacity at the next scale up would logically follow? Again, choose the slot by thematic fit, not by number. Give the geocode you would suggest.
+
+3. The LATERAL neighbour — the next room in the same Solid. What related capacity would sit alongside this one within the same Faculty? If the primary placement is the final room of that Solid (e.g. PH-R6 is the last Hexahedron room), wrap around to R1 — the Faculty is a cycle, not a queue; completing it returns you to the beginning with new understanding. Give the geocode.
+
+For each, suggest a specific concept name and one sentence of reasoning.
 
 ═══════════════════════════════════════════════
 OUTPUT FORMAT — STRICT JSON ONLY
 ═══════════════════════════════════════════════
 
-Respond ONLY with valid JSON. No preamble, no markdown, no explanation outside the JSON structure.
+Respond ONLY with valid JSON. No preamble, no markdown, no explanation outside the JSON.
 
 {
   "candidate": "exact name of the candidate concept",
@@ -110,7 +126,7 @@ Respond ONLY with valid JSON. No preamble, no markdown, no explanation outside t
   "test2_novelty": {
     "verdict": "NOVEL | DUPLICATE | VARIANT",
     "reasoning": "one or two sentences",
-    "similar_capacity": "name of similar capacity if DUPLICATE or VARIANT, else null"
+    "similar_capacity": "name if DUPLICATE or VARIANT, else null"
   },
   "test3_coherence": {
     "verdict": "COHERENT | CONTRADICTORY | MISALIGNED",
@@ -131,14 +147,46 @@ Respond ONLY with valid JSON. No preamble, no markdown, no explanation outside t
     "geocode": "XX-RN",
     "reasoning": "two or three sentences explaining why this School and this Solid"
   },
-  "recursive_reach": "one sentence on what inner-ring capacities this may illuminate or require revisiting, or null if none",
+  "alternative_placements": [
+    {
+      "geocode": "XX-RN",
+      "school": "full school name",
+      "school_code": "single letter",
+      "solid": "full solid name",
+      "scale": "Self | Relational | Community | Societal | Civilisational",
+      "strength": "one sentence — what is genuinely strong about this alternative",
+      "weakness": "one sentence — why the primary placement is preferred"
+    }
+  ],
+  "slot_candidates": [
+    {
+      "name": "concept name",
+      "reason": "one sentence why this concept competes well for this slot"
+    }
+  ],
+  "adjacent_spaces": {
+    "inner": {
+      "geocode": "XX-RN",
+      "suggested_concept": "concept name",
+      "reasoning": "one sentence"
+    },
+    "outer": {
+      "geocode": "XX-RN",
+      "suggested_concept": "concept name",
+      "reasoning": "one sentence"
+    },
+    "lateral": {
+      "geocode": "XX-RN",
+      "suggested_concept": "concept name",
+      "reasoning": "one sentence"
+    }
+  },
+  "recursive_reach": "one sentence, or null if none",
   "overall": "ACCEPT | REFER | REJECT",
-  "rationale": "one clear sentence — the single most important reason for this verdict"
+  "rationale": "one clear sentence"
 }
 
-If tests 1-4 do not all pass, still complete the JSON but set test5_placement fields to null and set overall to REFER or REJECT as appropriate.
-A REFER verdict means: the concept has merit but needs refinement before placement (too broad/narrow, variant of something existing, etc).
-A REJECT verdict means: the concept actively conflicts with the system or would weaken it.`;
+If tests 1-4 do not all pass, set test5_placement, alternative_placements, slot_candidates, and adjacent_spaces to null and set overall to REFER or REJECT.`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -163,7 +211,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 1500,
+        max_tokens: 2500,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
       }),
