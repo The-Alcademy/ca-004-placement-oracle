@@ -112,6 +112,26 @@ Reason thematically — not by mechanical slot number — about what would natur
 For each, suggest a specific concept name and one sentence of reasoning.
 
 ═══════════════════════════════════════════════
+CHARACTER SYSTEM — ALWAYS INCLUDE IF PLACEMENT ACCEPTED
+═══════════════════════════════════════════════
+
+Every placed Capacity has two character layers that make it memorable and give it gravity.
+
+THE PRINCIPAL — an internationally recognised figure, mnemonically strong, who embodies or exemplifies this Capacity at the highest level. This is the person whose name, when attached to the room, makes it instantly legible and memorable to anyone. They may be historical or contemporary, but they must be genuinely and specifically associated with this Capacity — not just vaguely relevant.
+
+Examples: Socratic Method → Socrates (obvious, correct). Active Recall → Ebbinghaus. Systems Mapping → Donella Meadows. 0th Principle Thinking → perhaps Descartes, or Nagarjuna.
+
+Suggest ONE primary principal and TWO alternatives. For each: name and one sentence of reasoning for why they fit.
+
+THE AMANUENSIS — a figure with genuine Cambridge connection who acts as the principal's local scribe and bridge. The amanuensis makes the global idea Cambridge-specific, builds local identity, and connects the BedePlex to the city's intellectual heritage. They may have studied, taught, lived, or worked in Cambridge. They should have a genuine intellectual connection to the Capacity — not just the most famous Cambridge person.
+
+Examples for Socratic Method: Wittgenstein (his later work explores language through dialogic questioning — a Cambridge man), G.E. Moore (his method of collaborative conceptual analysis at Cambridge echoes Socratic inquiry), Francis Bacon (Trinity man, developed systematic questioning as method).
+
+Cambridge figures to draw from: the full range of Cambridge intellectual history — scientists, philosophers, writers, mathematicians, economists, artists, politicians with Cambridge connections. Prioritise genuine intellectual fit over fame alone.
+
+Suggest ONE primary amanuensis and TWO alternatives. For each: name, Cambridge connection (one phrase), and one sentence of reasoning.
+
+═══════════════════════════════════════════════
 OUTPUT FORMAT — STRICT JSON ONLY
 ═══════════════════════════════════════════════
 
@@ -182,11 +202,34 @@ Respond ONLY with valid JSON. No preamble, no markdown, no explanation outside t
     }
   },
   "recursive_reach": "one sentence, or null if none",
+  "characters": {
+    "principal": {
+      "primary": {
+        "name": "full name",
+        "reasoning": "one sentence — why this person specifically embodies this Capacity"
+      },
+      "alternatives": [
+        { "name": "full name", "reasoning": "one sentence" },
+        { "name": "full name", "reasoning": "one sentence" }
+      ]
+    },
+    "amanuensis": {
+      "primary": {
+        "name": "full name",
+        "cambridge_connection": "brief phrase — e.g. 'Trinity College, 1900–1913'",
+        "reasoning": "one sentence — why this person bridges the principal to Cambridge"
+      },
+      "alternatives": [
+        { "name": "full name", "cambridge_connection": "brief phrase", "reasoning": "one sentence" },
+        { "name": "full name", "cambridge_connection": "brief phrase", "reasoning": "one sentence" }
+      ]
+    }
+  },
   "overall": "ACCEPT | REFER | REJECT",
   "rationale": "one clear sentence"
 }
 
-If tests 1-4 do not all pass, set test5_placement, alternative_placements, slot_candidates, and adjacent_spaces to null and set overall to REFER or REJECT.`;
+If tests 1-4 do not all pass, set test5_placement, alternative_placements, slot_candidates, adjacent_spaces, and characters to null and set overall to REFER or REJECT.`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -211,7 +254,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 2500,
+        max_tokens: 3000,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
       }),
