@@ -556,7 +556,7 @@ export default function App() {
               </div>
             )}
 
-            {/* Overall verdict + actions */
+            {/* Overall verdict + actions */}
             {activeEntry && (() => {
               const cfg = OVERALL_CFG[activeAssessment.overall];
               const isPending = activeEntry.disposition === "pending";
