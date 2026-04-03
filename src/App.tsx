@@ -60,6 +60,18 @@ interface Placement {
   reasoning: string;
 }
 
+interface AdjacentSpace {
+  geocode: string;
+  suggested_concept: string;
+  reasoning: string;
+}
+
+interface AdjacentSpaces {
+  inner: AdjacentSpace | null;
+  outer: AdjacentSpace | null;
+  lateral: AdjacentSpace | null;
+}
+
 interface Assessment {
   candidate: string;
   test1_granularity: TestResult;
@@ -67,6 +79,9 @@ interface Assessment {
   test3_coherence: TestResult;
   test4_systemic_benefit: TestResult;
   test5_placement: Placement | null;
+  alternative_placements: any[] | null;
+  slot_candidates: any[] | null;
+  adjacent_spaces: AdjacentSpaces | null;
   recursive_reach: string | null;
   overall: "ACCEPT" | "REFER" | "REJECT";
   rationale: string;
@@ -114,6 +129,101 @@ const TEST_LABELS: Record<string, string> = {
   test3_coherence:      "III · Coherence",
   test4_systemic_benefit: "IV · Systemic benefit",
 };
+
+
+// ── LOCALISED MAP ──────────────────────────────────────────────────────────────────────
+
+function LocalisedMap({ assessment }: { assessment: Assessment }) {
+  if (!assessment.test5_placement || !assessment.adjacent_spaces) return null;
+
+  const p = assessment.test5_placement;
+  const adj = assessment.adjacent_spaces;
+
+  const SCOL: Record<string, string> = {
+    R: "#c44444", O: "#c77440", Y: "#b89020",
+    G: "#2d7a5f", B: "#2255bb", P: "#7755bb",
+  };
+
+  const scaleLabel = (geocode: string) => {
+    const map: Record<string, string> = {
+      T: "Self", H: "Relational", O: "Community", D: "Societal", I: "Civilisational",
+    };
+    return map[geocode?.[1]?.toUpperCase()] ?? "";
+  };
+
+  const col    = SCOL[p.school_code] ?? "#888888";
+  const trunc  = (s: string | undefined, n: number) =>
+    !s ? "" : s.length > n ? s.slice(0, n - 1) + "…" : s;
+
+  const borderCol = "#2a1f38";
+  const dimBg    = "#0f0d14";
+
+  return (
+    <div style={{ marginBottom: "1rem" }}>
+      <div style={{ color: C.subtle, fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+        Local map
+      </div>
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "1px", padding: "0.5rem 0.5rem 0" }}>
+        <svg width="100%" viewBox="0 0 640 196">
+
+          {/* Scale axis */}
+          <line x1="20" y1="132" x2="620" y2="132" stroke={borderCol} strokeWidth="0.5" />
+
+          {/* Connector lines */}
+          {adj.inner   && <line x1="148" y1="112" x2="228" y2="112" stroke={borderCol} strokeWidth="0.5" strokeDasharray="4 3" />}
+          {adj.outer   && <line x1="412" y1="112" x2="492" y2="112" stroke={borderCol} strokeWidth="0.5" strokeDasharray="4 3" />}
+          {adj.lateral && <line x1="320" y1="80"  x2="320" y2="44"  stroke={borderCol} strokeWidth="0.5" strokeDasharray="4 3" />}
+
+          {/* ── Inner node ── */}
+          {adj.inner && adj.inner.geocode && (
+            <g>
+              <rect x="18" y="84" width="130" height="56" rx="3" fill={dimBg} stroke={borderCol} strokeWidth="0.5" />
+              <text x="83" y="100" textAnchor="middle" fontFamily={mono} fontSize="11" fill={SCOL[adj.inner.geocode[0]] ?? C.muted}>{adj.inner.geocode}</text>
+              <text x="83" y="115" textAnchor="middle" fontFamily={sans} fontSize="9"  fill={C.muted}>{trunc(adj.inner.suggested_concept, 16)}</text>
+              <text x="83" y="128" textAnchor="middle" fontFamily={sans} fontSize="8"  fill={C.subtle}>{scaleLabel(adj.inner.geocode)}</text>
+              <text x="83" y="152" textAnchor="middle" fontFamily={sans} fontSize="7.5" letterSpacing="0.07em" fill={C.subtle}>INNER</text>
+            </g>
+          )}
+
+          {/* ── Placed (centre) node ── */}
+          <g>
+            <rect x="228" y="74" width="184" height="72" rx="4" fill={col + "28"} stroke={col} strokeWidth="1" />
+            <text x="320" y="96"  textAnchor="middle" fontFamily={mono} fontSize="13" fontWeight="500" fill={col}>{p.geocode}</text>
+            <text x="320" y="113" textAnchor="middle" fontFamily={sans} fontSize="10" fill={C.text}>{trunc(assessment.candidate, 22)}</text>
+            <text x="320" y="128" textAnchor="middle" fontFamily={sans} fontSize="9"  fill={C.muted}>{p.scale}</text>
+            <text x="320" y="157" textAnchor="middle" fontFamily={sans} fontSize="7.5" letterSpacing="0.07em" fill={col}>PLACED</text>
+          </g>
+
+          {/* ── Outer node ── */}
+          {adj.outer && adj.outer.geocode && (
+            <g>
+              <rect x="492" y="84" width="130" height="56" rx="3" fill={dimBg} stroke={borderCol} strokeWidth="0.5" />
+              <text x="557" y="100" textAnchor="middle" fontFamily={mono} fontSize="11" fill={SCOL[adj.outer.geocode[0]] ?? C.muted}>{adj.outer.geocode}</text>
+              <text x="557" y="115" textAnchor="middle" fontFamily={sans} fontSize="9"  fill={C.muted}>{trunc(adj.outer.suggested_concept, 16)}</text>
+              <text x="557" y="128" textAnchor="middle" fontFamily={sans} fontSize="8"  fill={C.subtle}>{scaleLabel(adj.outer.geocode)}</text>
+              <text x="557" y="152" textAnchor="middle" fontFamily={sans} fontSize="7.5" letterSpacing="0.07em" fill={C.subtle}>OUTER</text>
+            </g>
+          )}
+
+          {/* ── Lateral node (above) ── */}
+          {adj.lateral && adj.lateral.geocode && (
+            <g>
+              <rect x="255" y="14" width="130" height="50" rx="3" fill={dimBg} stroke={borderCol} strokeWidth="0.5" />
+              <text x="320" y="30" textAnchor="middle" fontFamily={mono} fontSize="11" fill={SCOL[adj.lateral.geocode[0]] ?? C.muted}>{adj.lateral.geocode}</text>
+              <text x="320" y="46" textAnchor="middle" fontFamily={sans} fontSize="9"  fill={C.muted}>{trunc(adj.lateral.suggested_concept, 16)}</text>
+              <text x="320" y="82" textAnchor="middle" fontFamily={sans} fontSize="7.5" letterSpacing="0.07em" fill={C.subtle}>LATERAL</text>
+            </g>
+          )}
+
+          {/* Scale axis labels */}
+          <text x="83"  y="176" textAnchor="middle" fontFamily={sans} fontSize="7" letterSpacing="0.06em" fill={C.subtle}>← INNER SCALE</text>
+          <text x="320" y="176" textAnchor="middle" fontFamily={sans} fontSize="7" letterSpacing="0.06em" fill={C.subtle}>PLACED SCALE</text>
+          <text x="557" y="176" textAnchor="middle" fontFamily={sans} fontSize="7" letterSpacing="0.06em" fill={C.subtle}>OUTER SCALE →</text>
+        </svg>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [candidate,    setCandidate]    = useState("");
@@ -350,6 +460,11 @@ export default function App() {
               </div>
             )}
 
+            {/* Localised map */}
+            {activeAssessment.test5_placement && activeAssessment.adjacent_spaces && (
+              <LocalisedMap assessment={activeAssessment} />
+            )}
+
             {/* Recursive reach */}
             {activeAssessment.recursive_reach && (
               <div style={{ borderLeft: `2px solid ${C.border}`, paddingLeft: "1rem", marginBottom: "1rem" }}>
@@ -362,7 +477,86 @@ export default function App() {
               </div>
             )}
 
-            {/* Overall verdict + actions */}
+
+            {/* Alternative placements */}
+            {activeAssessment.alternative_placements && activeAssessment.alternative_placements.length > 0 && (
+              <div style={{ marginBottom: "1rem" }}>
+                <div style={{ color: C.subtle, fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+                  Alternative placements
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                  {activeAssessment.alternative_placements.map((alt: any, i: number) => (
+                    <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "1px", padding: "0.75rem 1rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.4rem" }}>
+                        <span style={{ fontFamily: mono, fontSize: "0.82rem", color: C.goldDim, border: `1px solid ${C.goldDim}`, padding: "0.1rem 0.4rem", borderRadius: "1px" }}>
+                          {alt.geocode}
+                        </span>
+                        <span style={{ color: SCHOOL_COLOURS[alt.school_code] ?? C.muted, fontSize: "0.75rem" }}>{alt.school}</span>
+                        <span style={{ color: C.subtle, fontSize: "0.72rem" }}>{alt.scale}</span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                        <div>
+                          <span style={{ color: C.acceptText, fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: "0.15rem" }}>Strong</span>
+                          <p style={{ color: C.muted, fontSize: "0.74rem", margin: 0, lineHeight: 1.55 }}>{alt.strength}</p>
+                        </div>
+                        <div>
+                          <span style={{ color: C.referText, fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: "0.15rem" }}>Weak</span>
+                          <p style={{ color: C.muted, fontSize: "0.74rem", margin: 0, lineHeight: 1.55 }}>{alt.weakness}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Slot candidates */}
+            {activeAssessment.slot_candidates && activeAssessment.slot_candidates.length > 0 && activeAssessment.test5_placement && (
+              <div style={{ marginBottom: "1rem" }}>
+                <div style={{ color: C.subtle, fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+                  Other candidates for {activeAssessment.test5_placement.geocode}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                  {activeAssessment.slot_candidates.map((sc: any, i: number) => (
+                    <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "1px", padding: "0.55rem 1rem", display: "flex", gap: "0.75rem", alignItems: "baseline" }}>
+                      <span style={{ color: C.text, fontFamily: serif, fontSize: "0.88rem", flexShrink: 0 }}>{sc.name}</span>
+                      <span style={{ color: C.muted, fontSize: "0.74rem", lineHeight: 1.5 }}>{sc.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Adjacent spaces */}
+            {activeAssessment.adjacent_spaces && (
+              <div style={{ marginBottom: "1rem" }}>
+                <div style={{ color: C.subtle, fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+                  Adjacent spaces
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.4rem" }}>
+                  {[
+                    { key: "inner", label: "Inner", desc: "prerequisite" },
+                    { key: "lateral", label: "Lateral", desc: "alongside" },
+                    { key: "outer", label: "Outer", desc: "extension" },
+                  ].map(({ key, label, desc }) => {
+                    const adj = (activeAssessment.adjacent_spaces as any)[key];
+                    if (!adj) return null;
+                    return (
+                      <div key={key} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "1px", padding: "0.75rem" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.35rem" }}>
+                          <span style={{ color: C.muted, fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>{label}</span>
+                          <span style={{ fontFamily: mono, fontSize: "0.72rem", color: C.goldDim }}>{adj.geocode}</span>
+                        </div>
+                        <div style={{ color: C.text, fontFamily: serif, fontSize: "0.84rem", marginBottom: "0.25rem" }}>{adj.suggested_concept}</div>
+                        <div style={{ color: C.subtle, fontSize: "0.7rem", lineHeight: 1.5 }}>{adj.reasoning}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Overall verdict + actions */
             {activeEntry && (() => {
               const cfg = OVERALL_CFG[activeAssessment.overall];
               const isPending = activeEntry.disposition === "pending";
