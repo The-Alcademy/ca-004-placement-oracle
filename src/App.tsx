@@ -72,6 +72,12 @@ interface AdjacentSpaces {
   lateral: AdjacentSpace | null;
 }
 
+interface Character {
+  name: string;
+  reasoning: string;
+  cambridge_connection?: string;
+}
+
 interface Assessment {
   candidate: string;
   test1_granularity: TestResult;
@@ -83,6 +89,10 @@ interface Assessment {
   slot_candidates: any[] | null;
   adjacent_spaces: AdjacentSpaces | null;
   recursive_reach: string | null;
+  characters: {
+    principal: { primary: Character; alternatives: Character[] };
+    amanuensis: { primary: Character; alternatives: Character[] };
+  } | null;
   overall: "ACCEPT" | "REFER" | "REJECT";
   rationale: string;
 }
@@ -231,6 +241,7 @@ function LocalisedMap({ assessment }: { assessment: Assessment }) {
 // Design spec: 680×640 viewBox, centre (340,320), 6 spokes at 60° from -90° (Purple).
 
 function BedePlexMap({ newGeocode, filledGeocodes }: { newGeocode: string; filledGeocodes: string[] }) {
+  const [hovered, setHovered] = useState<string | null>(null);
   const CX = 340, CY = 320;
 
   const SCHOOLS: Record<string, { angle: number; color: string }> = {
@@ -302,14 +313,23 @@ function BedePlexMap({ newGeocode, filledGeocodes }: { newGeocode: string; fille
         const isFilled = !isNew && filledSet.has(geocode);
         const delay    = ((ray * 0.3 + SCHOOL_ORDER.indexOf(sc) * 1.1) % 5).toFixed(1);
 
+        const onEnter = () => setHovered(geocode);
+        const onLeave = () => setHovered(null);
+        const isHov = hovered === geocode;
+
         if (isNew) {
           glows.push(<circle key={`glow-${geocode}`} cx={ox} cy={oy} r="5" fill={col} className="glow-new" />);
-          dots.push( <circle key={`room-${geocode}`}  cx={ox} cy={oy} r="3" fill={col} className="pulse-new" />);
+          dots.push(<circle key={`room-${geocode}`} cx={ox} cy={oy} r={isHov ? 4.5 : 3}
+            fill={col} className="pulse-new" style={{ cursor: "pointer" }}
+            onMouseEnter={onEnter} onMouseLeave={onLeave} />);
         } else if (isFilled) {
-          dots.push(<circle key={`room-${geocode}`} cx={ox} cy={oy} r="2.5" fill={col}
-            className="pulse-filled" style={{ animationDelay: `${delay}s` }} opacity="0.85" />);
+          dots.push(<circle key={`room-${geocode}`} cx={ox} cy={oy} r={isHov ? 4 : 2.5} fill={col}
+            className="pulse-filled" style={{ animationDelay: `${delay}s`, cursor: "pointer" }}
+            opacity={isHov ? 1 : 0.85} onMouseEnter={onEnter} onMouseLeave={onLeave} />);
         } else {
-          dots.push(<circle key={`room-${geocode}`} cx={ox} cy={oy} r="2" fill={col} opacity="0.3" />);
+          dots.push(<circle key={`room-${geocode}`} cx={ox} cy={oy} r={isHov ? 3 : 2} fill={col}
+            opacity={isHov ? 0.7 : 0.3} style={{ cursor: "pointer" }}
+            onMouseEnter={onEnter} onMouseLeave={onLeave} />);
         }
       }
     }
@@ -318,7 +338,7 @@ function BedePlexMap({ newGeocode, filledGeocodes }: { newGeocode: string; fille
   return (
     <div style={{ marginTop: "1.75rem" }}>
       <div style={{ color: C.subtle, fontSize: "0.62rem", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "0.6rem" }}>
-        The BedePlex — {newGeocode} placed
+        BedePlex map — {newGeocode} placed
       </div>
       <div style={{ background: "#050307", border: `1px solid ${C.border}`, borderRadius: "2px" }}>
         <svg width="100%" viewBox="0 0 680 640">
@@ -344,6 +364,36 @@ function BedePlexMap({ newGeocode, filledGeocodes }: { newGeocode: string; fille
           {lines}
           {glows}
           {dots}
+
+          {/* Hover tooltip */}
+          {hovered && (() => {
+            const sc = hovered[0];
+            const so = hovered[1];
+            const slot = parseInt(hovered.split("-R")[1]);
+            const school = SCHOOLS[sc];
+            const solid  = SOLIDS[so];
+            if (!school || !solid) return null;
+            const sa = rad(school.angle);
+            const fx = CX + solid.r * Math.cos(sa);
+            const fy = CY + solid.r * Math.sin(sa);
+            const ra = sa + (2 * Math.PI * (slot - 1)) / solid.rays;
+            const tx = fx + solid.arm * Math.cos(ra);
+            const ty = fy + solid.arm * Math.sin(ra);
+            const flip = tx > 420;
+            const bx = flip ? tx - 130 : tx + 8;
+            const by = Math.max(14, Math.min(ty - 16, 600));
+            const isNew    = hovered === newGeocode;
+            const isFilled = !isNew && filledSet.has(hovered);
+            const status   = isNew ? "just placed" : isFilled ? "placed" : "empty";
+            return (
+              <g key="tooltip">
+                <rect x={bx} y={by} width="122" height="32" rx="2"
+                  fill="#0c0910" stroke={school.color} strokeWidth="0.5" opacity="0.97" />
+                <text x={bx + 6} y={by + 13} fontFamily={mono} fontSize="10" fill={school.color}>{hovered}</text>
+                <text x={bx + 6} y={by + 24} fontFamily={sans} fontSize="8.5" fill="#7a7068">{status}</text>
+              </g>
+            );
+          })()}
         </svg>
       </div>
     </div>
@@ -666,6 +716,54 @@ export default function App() {
                       <span style={{ color: C.muted, fontSize: "0.74rem", lineHeight: 1.5 }}>{sc.reason}</span>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Characters */}
+            {activeAssessment.characters && (
+              <div style={{ marginBottom: "1rem" }}>
+                <div style={{ color: C.subtle, fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+                  Characters
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                  {/* Principal */}
+                  <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "1px", padding: "0.85rem 1rem" }}>
+                    <div style={{ color: C.subtle, fontSize: "0.6rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "0.5rem" }}>Principal</div>
+                    <div style={{ color: C.text, fontFamily: serif, fontSize: "1rem", fontWeight: 300, marginBottom: "0.25rem" }}>
+                      {activeAssessment.characters.principal.primary.name}
+                    </div>
+                    <p style={{ color: C.muted, fontSize: "0.74rem", margin: "0 0 0.6rem", lineHeight: 1.55 }}>
+                      {activeAssessment.characters.principal.primary.reasoning}
+                    </p>
+                    {activeAssessment.characters.principal.alternatives.map((a: Character, i: number) => (
+                      <div key={i} style={{ color: C.subtle, fontSize: "0.72rem", display: "flex", gap: "0.4rem", marginBottom: "0.2rem" }}>
+                        <span style={{ color: C.goldDim, flexShrink: 0 }}>·</span>
+                        <span>{a.name} — {a.reasoning}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Amanuensis */}
+                  <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "1px", padding: "0.85rem 1rem" }}>
+                    <div style={{ color: C.subtle, fontSize: "0.6rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "0.5rem" }}>Cambridge amanuensis</div>
+                    <div style={{ color: C.text, fontFamily: serif, fontSize: "1rem", fontWeight: 300, marginBottom: "0.15rem" }}>
+                      {activeAssessment.characters.amanuensis.primary.name}
+                    </div>
+                    {activeAssessment.characters.amanuensis.primary.cambridge_connection && (
+                      <div style={{ color: C.goldDim, fontSize: "0.68rem", fontFamily: sans, marginBottom: "0.25rem", fontStyle: "italic" }}>
+                        {activeAssessment.characters.amanuensis.primary.cambridge_connection}
+                      </div>
+                    )}
+                    <p style={{ color: C.muted, fontSize: "0.74rem", margin: "0 0 0.6rem", lineHeight: 1.55 }}>
+                      {activeAssessment.characters.amanuensis.primary.reasoning}
+                    </p>
+                    {activeAssessment.characters.amanuensis.alternatives.map((a: Character, i: number) => (
+                      <div key={i} style={{ color: C.subtle, fontSize: "0.72rem", display: "flex", gap: "0.4rem", marginBottom: "0.2rem" }}>
+                        <span style={{ color: C.goldDim, flexShrink: 0 }}>·</span>
+                        <span>{a.name}{a.cambridge_connection ? ` (${a.cambridge_connection})` : ""} — {a.reasoning}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
