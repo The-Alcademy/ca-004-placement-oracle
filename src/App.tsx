@@ -225,6 +225,131 @@ function LocalisedMap({ assessment }: { assessment: Assessment }) {
   );
 }
 
+
+// ── BEDEPLEX MAP ───────────────────────────────────────────────────────────────────────
+// Renders the full BedePlex radial structure with pulsing dots for placed rooms.
+// Design spec: 680×640 viewBox, centre (340,320), 6 spokes at 60° from -90° (Purple).
+
+function BedePlexMap({ newGeocode, filledGeocodes }: { newGeocode: string; filledGeocodes: string[] }) {
+  const CX = 340, CY = 320;
+
+  const SCHOOLS: Record<string, { angle: number; color: string }> = {
+    P: { angle: -90, color: "#8855cc" },
+    R: { angle: -30, color: "#cc3333" },
+    O: { angle:  30, color: "#cc6622" },
+    Y: { angle:  90, color: "#aaaa22" },
+    G: { angle: 150, color: "#33aa44" },
+    B: { angle: 210, color: "#3355cc" },
+  };
+
+  const SOLIDS: Record<string, { r: number; arm: number; rays: number }> = {
+    T: { r: 52,  arm: 13, rays: 4  },
+    H: { r: 90,  arm: 16, rays: 6  },
+    O: { r: 133, arm: 20, rays: 8  },
+    D: { r: 195, arm: 26, rays: 12 },
+    I: { r: 265, arm: 34, rays: 20 },
+  };
+
+  const SCHOOL_ORDER = ["P", "R", "O", "Y", "G", "B"];
+  const SOLID_ORDER  = ["T", "H", "O", "D", "I"];
+  const rad = (d: number) => d * Math.PI / 180;
+  const filledSet = new Set(filledGeocodes);
+
+  const lines: React.ReactNode[]   = [];
+  const dots: React.ReactNode[]    = [];
+  const glows: React.ReactNode[]   = [];
+
+  // Centre starburst (gold, 24 rays)
+  for (let i = 0; i < 24; i++) {
+    const a = (2 * Math.PI * i) / 24;
+    lines.push(<line key={`cr${i}`} x1={CX} y1={CY} x2={CX + 9*Math.cos(a)} y2={CY + 9*Math.sin(a)} stroke="#c49a3c" strokeWidth="0.7" opacity="0.7" />);
+    dots.push(<circle key={`cd${i}`} cx={CX + 12*Math.cos(a)} cy={CY + 12*Math.sin(a)} r="1.5" fill="#c49a3c" opacity="0.9" />);
+  }
+  dots.push(<circle key="cen" cx={CX} cy={CY} r="4.5" fill="#c49a3c" opacity="1" />);
+
+  for (const sc of SCHOOL_ORDER) {
+    const school = SCHOOLS[sc];
+    const sa = rad(school.angle);
+    const col = school.color;
+
+    // Spoke backbone
+    const fr = SOLIDS["I"].r + SOLIDS["I"].arm + 6;
+    lines.push(<line key={`sp-${sc}`}
+      x1={CX + 13*Math.cos(sa)} y1={CY + 13*Math.sin(sa)}
+      x2={CX + fr*Math.cos(sa)} y2={CY + fr*Math.sin(sa)}
+      stroke={col} strokeWidth="0.4" opacity="0.25"
+    />);
+
+    for (const soc of SOLID_ORDER) {
+      const solid = SOLIDS[soc];
+      const fx = CX + solid.r * Math.cos(sa);
+      const fy = CY + solid.r * Math.sin(sa);
+
+      dots.push(<circle key={`fac-${sc}${soc}`} cx={fx} cy={fy} r="2" fill={col} opacity="0.6" />);
+
+      for (let ray = 0; ray < solid.rays; ray++) {
+        const ra = sa + (2 * Math.PI * ray) / solid.rays;
+        const ix = fx + solid.arm * 0.48 * Math.cos(ra);
+        const iy = fy + solid.arm * 0.48 * Math.sin(ra);
+        const ox = fx + solid.arm * Math.cos(ra);
+        const oy = fy + solid.arm * Math.sin(ra);
+
+        lines.push(<line key={`ray-${sc}${soc}-${ray}`} x1={fx} y1={fy} x2={ox} y2={oy} stroke={col} strokeWidth="0.5" opacity="0.35" />);
+        dots.push(<circle  key={`in-${sc}${soc}-${ray}`}  cx={ix} cy={iy} r="1.5" fill={col} opacity="0.45" />);
+
+        const geocode = `${sc}${soc}-R${ray + 1}`;
+        const isNew    = geocode === newGeocode;
+        const isFilled = !isNew && filledSet.has(geocode);
+        const delay    = ((ray * 0.3 + SCHOOL_ORDER.indexOf(sc) * 1.1) % 5).toFixed(1);
+
+        if (isNew) {
+          glows.push(<circle key={`glow-${geocode}`} cx={ox} cy={oy} r="5" fill={col} className="glow-new" />);
+          dots.push( <circle key={`room-${geocode}`}  cx={ox} cy={oy} r="3" fill={col} className="pulse-new" />);
+        } else if (isFilled) {
+          dots.push(<circle key={`room-${geocode}`} cx={ox} cy={oy} r="2.5" fill={col}
+            className="pulse-filled" style={{ animationDelay: `${delay}s` }} opacity="0.85" />);
+        } else {
+          dots.push(<circle key={`room-${geocode}`} cx={ox} cy={oy} r="2" fill={col} opacity="0.3" />);
+        }
+      }
+    }
+  }
+
+  return (
+    <div style={{ marginTop: "1.75rem" }}>
+      <div style={{ color: C.subtle, fontSize: "0.62rem", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "0.6rem" }}>
+        The BedePlex — {newGeocode} placed
+      </div>
+      <div style={{ background: "#050307", border: `1px solid ${C.border}`, borderRadius: "2px" }}>
+        <svg width="100%" viewBox="0 0 680 640">
+          <style>{`
+            @keyframes pulseNew {
+              0%,100% { opacity:1; }
+              50%      { opacity:0.1; }
+            }
+            @keyframes glowNew {
+              0%,100% { opacity:0; transform:scale(1); }
+              50%      { opacity:0.45; transform:scale(2.2); }
+            }
+            @keyframes pulseFilled {
+              0%,100% { opacity:0.85; }
+              50%      { opacity:0.2; }
+            }
+            .pulse-new    { animation: pulseNew    1.5s ease-in-out infinite; }
+            .glow-new     { animation: glowNew     1.5s ease-in-out infinite;
+                            transform-box:fill-box; transform-origin:center; }
+            .pulse-filled { animation: pulseFilled 5s   ease-in-out infinite; }
+          `}</style>
+          <rect width="680" height="640" fill="#050307" />
+          {lines}
+          {glows}
+          {dots}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [candidate,    setCandidate]    = useState("");
   const [description,  setDescription]  = useState("");
@@ -235,6 +360,10 @@ export default function App() {
   const [nextId,       setNextId]       = useState(1);
   const [saving,       setSaving]       = useState(false);
   const [saveMsg,      setSaveMsg]      = useState("");
+  const [confidence,   setConfidence]   = useState(3);
+  const [notes,        setNotes]        = useState("");
+  const [showMapFor,   setShowMapFor]   = useState<{ geocode: string; filledGeocodes: string[] } | null>(null);
+  const [loadingMap,   setLoadingMap]   = useState(false);
   const [selected,     setSelected]     = useState<HistoryEntry | null>(null);
 
   const reset = () => {
@@ -244,6 +373,9 @@ export default function App() {
     setError("");
     setSaveMsg("");
     setSelected(null);
+    setConfidence(3);
+    setNotes("");
+    setShowMapFor(null);
   };
 
   const consult = async () => {
@@ -294,20 +426,31 @@ export default function App() {
     setSaveMsg("");
     try {
       await db("capacity_register", "POST", {
-        geocode:          a.test5_placement.geocode,
-        name:             a.candidate,
-        school_code:      a.test5_placement.school_code,
-        solid_code:       a.test5_placement.solid_code,
-        slot:             a.test5_placement.slot,
-        oracle_note:      JSON.stringify({
-          rationale:       a.rationale,
-          recursive_reach: a.recursive_reach,
+        geocode:           a.test5_placement.geocode,
+        name:              a.candidate,
+        school_code:       a.test5_placement.school_code,
+        solid_code:        a.test5_placement.solid_code,
+        slot:              a.test5_placement.slot,
+        confidence,
+        placement_notes:   notes.trim() || null,
+        oracle_note:       JSON.stringify({
+          rationale:           a.rationale,
+          recursive_reach:     a.recursive_reach,
           placement_reasoning: a.test5_placement.reasoning,
         }),
-        placement_source: "oracle",
+        placement_source:  "oracle",
       }, "return=minimal");
       updateDisposition(entryId, "accepted");
       setSaveMsg(`Placed at ${a.test5_placement.geocode}`);
+
+      // Load all filled geocodes to show pulsing map
+      setLoadingMap(true);
+      try {
+        const filled = await db("capacity_register?select=geocode&geocode=not.is.null", "GET");
+        const geocodes: string[] = (filled ?? []).map((r: any) => r.geocode).filter(Boolean);
+        setShowMapFor({ geocode: a.test5_placement.geocode, filledGeocodes: geocodes });
+      } catch { /* map loading is non-critical */ }
+      setLoadingMap(false);
     } catch {
       setSaveMsg("Write failed — check Supabase connection.");
     } finally {
@@ -574,13 +717,56 @@ export default function App() {
                   {isPending && (
                     <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                       {activeAssessment.overall === "ACCEPT" && activeAssessment.test5_placement && (
-                        <button
-                          onClick={() => accept(activeAssessment, activeEntry.id)}
-                          disabled={saving}
-                          style={{ background: C.accept, border: "none", color: "#fff", fontFamily: sans, fontSize: "0.72rem", letterSpacing: "0.06em", padding: "0.35rem 0.9rem", cursor: "pointer", borderRadius: "1px", opacity: saving ? 0.55 : 1 }}
-                        >
-                          {saving ? "Placing…" : `Accept → ${activeAssessment.test5_placement.geocode}`}
-                        </button>
+                        <div style={{ width: "100%", marginBottom: "0.75rem" }}>
+                          {/* Confidence rating */}
+                          <div style={{ marginBottom: "0.6rem" }}>
+                            <div style={{ color: C.muted, fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "0.35rem" }}>
+                              Your confidence in this placement
+                            </div>
+                            <div style={{ display: "flex", gap: "0.3rem" }}>
+                              {[1,2,3,4,5].map(n => (
+                                <button key={n} onClick={() => setConfidence(n)} style={{
+                                  width: "32px", height: "32px", borderRadius: "1px",
+                                  background: n <= confidence ? C.goldFaint : "transparent",
+                                  border: `1px solid ${n <= confidence ? C.gold : C.inputBorder}`,
+                                  color: n <= confidence ? C.gold : C.muted,
+                                  fontFamily: serif, fontSize: "1rem", cursor: "pointer",
+                                }}>
+                                  {n}
+                                </button>
+                              ))}
+                              <span style={{ color: C.muted, fontSize: "0.72rem", alignSelf: "center", marginLeft: "0.5rem" }}>
+                                {["","uncertain","possible","likely","confident","certain"][confidence]}
+                              </span>
+                            </div>
+                          </div>
+                          {/* Notes */}
+                          <div style={{ marginBottom: "0.75rem" }}>
+                            <div style={{ color: C.muted, fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "0.35rem" }}>
+                              Notes <span style={{ color: C.subtle, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+                            </div>
+                            <textarea
+                              value={notes}
+                              onChange={e => setNotes(e.target.value)}
+                              placeholder="Reasoning, reservations, context for this placement…"
+                              style={{
+                                width: "100%", background: C.inputBg, border: `1px solid ${C.inputBorder}`,
+                                borderRadius: "1px", color: C.text, fontFamily: sans, fontSize: "0.78rem",
+                                padding: "0.5rem 0.7rem", boxSizing: "border-box", outline: "none",
+                                minHeight: "68px", resize: "vertical", lineHeight: 1.5,
+                              }}
+                              onFocus={e => e.target.style.borderColor = C.goldDim}
+                              onBlur={e  => e.target.style.borderColor = C.inputBorder}
+                            />
+                          </div>
+                          <button
+                            onClick={() => accept(activeAssessment, activeEntry.id)}
+                            disabled={saving}
+                            style={{ background: C.accept, border: "none", color: "#fff", fontFamily: sans, fontSize: "0.72rem", letterSpacing: "0.06em", padding: "0.35rem 0.9rem", cursor: "pointer", borderRadius: "1px", opacity: saving ? 0.55 : 1 }}
+                          >
+                            {saving ? "Placing…" : `Accept & place → ${activeAssessment.test5_placement.geocode}`}
+                          </button>
+                        </div>
                       )}
                       <button
                         onClick={() => updateDisposition(activeEntry.id, "referred")}
@@ -606,6 +792,14 @@ export default function App() {
                 </div>
               );
             })()}
+
+            {/* BedePlex map post-acceptance */}
+            {showMapFor && (
+              <BedePlexMap newGeocode={showMapFor.geocode} filledGeocodes={showMapFor.filledGeocodes} />
+            )}
+            {loadingMap && (
+              <p style={{ color: C.muted, fontSize: "0.75rem", marginTop: "1rem" }}>Loading BedePlex…</p>
+            )}
 
             <button
               onClick={reset}
